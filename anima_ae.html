@@ -1,0 +1,4092 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>10xRate - Mobile Animation (After Effects Edition)</title>
+<!-- Geist Sans Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css">
+
+<style>
+  :root {
+    --bg-stage: #090b0e;
+    --phone-bg: #14161a;
+    --header-bg: #1e1e1e;
+    --modal-bg: #191c23;
+    --blue-gradient: linear-gradient(180deg, #2c84fa 0%, #0357c8 100%);
+    --green-gradient: linear-gradient(180deg, #00d11d 0%, #008f00 100%);
+    --blue-primary: #2c84fa;
+    --blue-dark: #0357c8;
+    --field-bg: #3d3d3d;
+    --field-border: #095ecf;
+    --field-border-focus: #3b8cff;
+    --text-white: #ffffff;
+    --text-muted: #898988;
+    --font-family: 'Geist', 'Geist Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    -webkit-tap-highlight-color: transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  html, body {
+    height: 100%;
+    width: 100%;
+    background: radial-gradient(circle at 50% 30%, #151b26 0%, #080a0d 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-white);
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Ambient background lighting */
+  .ambient-glow {
+    position: absolute;
+    width: 650px;
+    height: 650px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(44, 132, 250, 0.16) 0%, rgba(3, 87, 200, 0.05) 50%, transparent 70%);
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---------- 3D Camera Viewport & Rig (After Effects Edition) ---------- */
+  .camera-viewport {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1200px;
+    perspective-origin: 50% 50%;
+    overflow: hidden;
+  }
+
+  .camera-rig {
+    position: relative;
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.75s cubic-bezier(0.25, 0.1, 0.25, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- iPhone Device Shell ---------- */
+  .phone-frame {
+    position: relative;
+    width: 390px;
+    height: 820px;
+    background: var(--phone-bg);
+    border-radius: 48px;
+    box-shadow: 
+      0 0 0 10px #1c2027,
+      0 0 0 12px #2d3440,
+      0 35px 100px rgba(0, 0, 0, 0.9),
+      0 0 60px rgba(44, 132, 250, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    transform-style: preserve-3d;
+  }
+
+  /* After Effects Touch Pointer / Cursor */
+  .ae-cursor {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    margin-left: -16px;
+    margin-top: -16px;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    transform: translate3d(195px, 410px, 0) scale(1);
+    transition: opacity 0.25s ease, transform 0.45s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  .ae-cursor.visible {
+    opacity: 1;
+  }
+  .ae-cursor-dot {
+    position: absolute;
+    inset: 9px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(44, 132, 250, 0.9), 0 0 4px rgba(255, 255, 255, 1);
+    transition: transform 0.15s ease, background-color 0.15s ease;
+  }
+  .ae-cursor-ring {
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(44, 132, 250, 0.85);
+    border-radius: 50%;
+    background: rgba(44, 132, 250, 0.15);
+    box-shadow: 0 0 18px rgba(44, 132, 250, 0.5);
+    transition: transform 0.16s ease, border-color 0.16s ease;
+  }
+  .ae-cursor.pressing .ae-cursor-dot {
+    transform: scale(0.65);
+    background: #2c84fa;
+  }
+  .ae-cursor.pressing .ae-cursor-ring {
+    transform: scale(1.4);
+    border-color: rgba(255, 255, 255, 0.95);
+    background: rgba(44, 132, 250, 0.35);
+  }
+
+  /* Ripple Wave */
+  .ae-ripple {
+    position: absolute;
+    width: 48px;
+    height: 48px;
+    margin-left: -24px;
+    margin-top: -24px;
+    border: 2px solid rgba(44, 132, 250, 0.85);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 998;
+    animation: ae-ripple-expand 0.45s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  }
+  @keyframes ae-ripple-expand {
+    0% { transform: scale(0.3); opacity: 1; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  /* Glass Screen Glare Reflection */
+  .phone-screen-glare {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 45%, rgba(44,132,250,0.03) 100%);
+    pointer-events: none;
+    z-index: 120;
+  }
+
+  /* iOS Status Bar */
+  .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 26px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 28px;
+    background: #000000;
+    border-radius: 20px;
+    z-index: 51;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* iOS Home Indicator Bar */
+  .home-indicator {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 135px;
+    height: 4.5px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 10px;
+    z-index: 105;
+    pointer-events: none;
+  }
+
+  /* Phone screen content area */
+  .phone-screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding-top: 44px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Scene Transitions & Hidden utility */
+  .hidden {
+    display: none !important;
+  }
+
+  .scene {
+    position: absolute;
+    inset: 44px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    transition: opacity 0.28s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .scene.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    transform: translateY(8px) !important;
+    pointer-events: none !important;
+  }
+
+  /* ───────────────────────── 1. Google Mobile Scene ───────────────────────── */
+  .google-mobile-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px 80px;
+  }
+
+  .google-logo-mobile {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 54px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1;
+    font-family: 'Product Sans', 'Roboto', sans-serif;
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .google-logo-mobile.visible { opacity: 1; transform: translateY(0); }
+  .google-logo-mobile.fade-out { opacity: 0; transform: translateY(-16px); }
+
+  .google-logo-mobile span:nth-child(1) { color: #4285F4; }
+  .google-logo-mobile span:nth-child(2) { color: #EA4335; }
+  .google-logo-mobile span:nth-child(3) { color: #FBBC05; }
+  .google-logo-mobile span:nth-child(4) { color: #4285F4; }
+  .google-logo-mobile span:nth-child(5) { color: #34A853; }
+  .google-logo-mobile span:nth-child(6) { color: #EA4335; }
+
+  /* Mobile Search Bar */
+  .search-bar-mobile {
+    width: 100%;
+    max-width: 340px;
+    height: 48px;
+    background: #ffffff;
+    border-radius: 24px;
+    border: 1px solid #dfe1e5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  .search-bar-mobile.is-tapped {
+    transform: scale(0.97);
+    box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.3);
+  }
+
+  .search-icon-mobile {
+    color: #9aa0a6;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-content-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+
+  .search-text-mobile {
+    font-size: 15.5px;
+    color: #202124;
+    white-space: nowrap;
+  }
+
+  .blink-cursor-mobile {
+    display: inline-block;
+    width: 2px;
+    height: 19px;
+    background: #1a73e8;
+    margin-left: 2px;
+    flex-shrink: 0;
+    animation: blinkMobile 0.85s step-start infinite;
+  }
+  @keyframes blinkMobile {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* ───────────────────────── 2. Mobile Website Header ───────────────────────── */
+  .mobile-site {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #14161a;
+  }
+
+  .mobile-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1e1e1e;
+    padding: 10px 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    z-index: 10;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .toggle-menu-btn {
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .logo-link {
+    display: flex;
+    align-items: center;
+  }
+
+  .logo-link img {
+    height: 32px;
+    width: auto;
+    max-width: 125px;
+    object-fit: contain;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .mobile-btn {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 13.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 25px;
+    border: 1px solid var(--blue-primary);
+    background: transparent;
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+
+  .mobile-btn-filled {
+    background: var(--blue-gradient);
+    border: 1px solid #3b8cff;
+    box-shadow: 0 2px 10px rgba(3, 87, 200, 0.4);
+    font-weight: 600;
+  }
+
+  /* Logged In Header Elements */
+  .header-wallet-btn {
+    display: flex;
+    height: 36px;
+    width: 68px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    background: var(--blue-gradient);
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(3, 87, 200, 0.35);
+  }
+
+  .header-avatar-btn {
+    position: relative;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .header-avatar-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #2c84fa;
+    box-shadow: 0 0 8px rgba(44, 132, 250, 0.5);
+  }
+
+  .mobile-btn.is-tapped, .submit-btn-mobile.is-tapped, .social-btn-mobile.is-tapped, .header-avatar-btn.is-tapped, .header-wallet-btn.is-tapped, .add-wallet-submit-btn.is-tapped, .currency-switch-btn.is-tapped, .add-wallet-card.is-tapped {
+    transform: scale(0.92) !important;
+    box-shadow: 0 0 0 4px rgba(44, 132, 250, 0.55) !important;
+  }
+
+  /* Blurred Background Body Content */
+  .mobile-body-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 12px;
+    filter: blur(2.5px);
+    opacity: 0.6;
+    pointer-events: none;
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .mobile-cat-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .cat-pill {
+    flex: 1;
+    height: 36px;
+    background: #252830;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.06);
+    white-space: nowrap;
+  }
+
+  .cat-pill.active {
+    background: #2c84fa;
+    color: #ffffff;
+    border-color: #4ea1ff;
+  }
+
+  .mobile-hero-banner {
+    position: relative;
+    height: 145px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #123060 0%, #08172e 100%);
+    border: 1px solid rgba(44, 132, 250, 0.25);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 0 20px rgba(44, 132, 250, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px;
+    overflow: hidden;
+  }
+
+  .hero-text-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 2;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: #ff5e3a;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+
+  .hero-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.1;
+  }
+
+  .hero-sub {
+    font-size: 11.5px;
+    color: #8bbfff;
+  }
+
+  .hero-athlete-img {
+    position: absolute;
+    right: -10px;
+    bottom: -15px;
+    height: 160px;
+    width: auto;
+    object-fit: contain;
+    z-index: 1;
+    opacity: 0.9;
+  }
+
+  .games-grid-preview {
+    display: flex;
+    gap: 10px;
+  }
+
+  .game-card-mock {
+    flex: 1;
+    height: 95px;
+    background: #1c2027;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .game-icon-mock {
+    font-size: 24px;
+  }
+
+  .game-card-mock span {
+    font-size: 10px;
+    color: #94a3b8;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+  }
+
+  /* ───────────────────────── 3. Registration Modal Sheet ───────────────────────── */
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    z-index: 30;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+  }
+
+  .modal-backdrop.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .modal-mobile-card {
+    position: relative;
+    width: 100%;
+    max-height: 96%;
+    background: var(--modal-bg);
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(44, 132, 250, 0.2);
+    overflow: hidden;
+    padding: 18px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.22s ease;
+  }
+
+  .modal-backdrop.hidden .modal-mobile-card {
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+  }
+
+  .cascade-item {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .modal-backdrop:not(.hidden) .cascade-item {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .modal-backdrop:not(.hidden) .modal-mobile-header.cascade-item { transition-delay: 0.03s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(1) { transition-delay: 0.06s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(2) { transition-delay: 0.09s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(3) { transition-delay: 0.12s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(4) { transition-delay: 0.15s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(5) { transition-delay: 0.18s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(6) { transition-delay: 0.21s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(7) { transition-delay: 0.24s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(8) { transition-delay: 0.27s; }
+  .modal-backdrop:not(.hidden) .form-mobile > .cascade-item:nth-child(9) { transition-delay: 0.30s; }
+
+  .modal-mobile-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .modal-close-mobile {
+    position: absolute;
+    right: 0;
+    top: -2px;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    color: #89909c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .form-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .field-wrap-mobile {
+    position: relative;
+    width: 100%;
+  }
+
+  .input-mobile {
+    width: 100%;
+    height: 42px;
+    border-radius: 14px;
+    background: var(--field-bg);
+    border: 1px solid var(--field-border);
+    color: #ffffff;
+    padding: 0 14px;
+    font-size: 14.5px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+
+  .input-mobile::placeholder {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .field-wrap-mobile.is-active .input-mobile {
+    border-color: var(--field-border-focus);
+    box-shadow: 0 0 0 3px rgba(44, 132, 250, 0.3);
+    background: #464646;
+  }
+
+  .eye-btn-mobile {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    opacity: 0.65;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.15s ease;
+  }
+
+  .eye-btn-mobile.is-tapped {
+    opacity: 1;
+    transform: translateY(-50%) scale(0.85);
+  }
+
+  .checkbox-mobile-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 4px 0 2px;
+    cursor: pointer;
+  }
+
+  .checkbox-mobile {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    background: var(--blue-dark);
+    border: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background-color 0.2s ease, transform 0.12s ease;
+  }
+
+  .checkbox-mobile.checked {
+    background: #0064e6;
+    box-shadow: 0 0 8px rgba(44, 132, 250, 0.6);
+  }
+
+  .checkbox-mobile svg {
+    width: 13px;
+    height: 13px;
+    stroke: #ffffff;
+    stroke-width: 3;
+    opacity: 0;
+    transform: scale(0.3);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .checkbox-mobile.checked svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .checkbox-mobile-label {
+    font-size: 12.5px;
+    color: #ffffff;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  .submit-btn-mobile {
+    width: 100%;
+    height: 42px;
+    border-radius: 25px;
+    border: 1px solid #3b8cff;
+    background: var(--blue-gradient);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(3, 87, 200, 0.4);
+    margin-top: 4px;
+    transition: transform 0.12s ease, box-shadow 0.2s ease;
+  }
+
+  .social-text-mobile {
+    text-align: center;
+    font-size: 12.5px;
+    color: #cbd0d8;
+    margin: 8px 0 6px;
+  }
+
+  .social-row-mobile {
+    display: flex;
+    gap: 10px;
+  }
+
+  .social-btn-mobile {
+    flex: 1;
+    height: 38px;
+    border-radius: 8px;
+    background: #f6f7f8;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    cursor: pointer;
+  }
+
+  /* ───────────────────────── 4. Universal Right Drawer Sidebar Menu ───────────────────────── */
+  .drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 60;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.22s ease, visibility 0.22s ease;
+  }
+
+  .drawer-backdrop.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .right-drawer {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 320px;
+    background: #191c24;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    box-shadow: -10px 0 35px rgba(0,0,0,0.8);
+    transform: translateX(0);
+    transition: transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    z-index: 61;
+  }
+
+  .drawer-backdrop.hidden .right-drawer {
+    transform: translateX(100%);
+  }
+
+  /* Drawer Cascade Animation */
+  .cascade-drawer {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.20s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.20s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .drawer-backdrop:not(.hidden) .cascade-drawer {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .drawer-backdrop:not(.hidden) .drawer-header.cascade-drawer { transition-delay: 0.03s; }
+  .drawer-backdrop:not(.hidden) .drawer-user-card.cascade-drawer { transition-delay: 0.06s; }
+  .drawer-backdrop:not(.hidden) .drawer-actions-row.cascade-drawer { transition-delay: 0.09s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(1).cascade-drawer { transition-delay: 0.11s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(2).cascade-drawer { transition-delay: 0.13s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(3).cascade-drawer { transition-delay: 0.15s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(4).cascade-drawer { transition-delay: 0.17s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(5).cascade-drawer { transition-delay: 0.19s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(6).cascade-drawer { transition-delay: 0.21s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(7).cascade-drawer { transition-delay: 0.23s; }
+  .drawer-backdrop:not(.hidden) .drawer-menu-list > li:nth-child(8).cascade-drawer { transition-delay: 0.25s; }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1e1e1e;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    gap: 10px;
+  }
+
+  .currency-select-pill {
+    flex: 1;
+    height: 38px;
+    background: #2a2d35;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  .drawer-close-btn {
+    width: 36px;
+    height: 36px;
+    background: #3a3a3a;
+    border-radius: 8px;
+    border: none;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .drawer-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .drawer-user-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #20242e;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .drawer-avatar-img {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #2c84fa;
+    box-shadow: 0 0 10px rgba(44, 132, 250, 0.4);
+  }
+
+  .drawer-user-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .drawer-id-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #231f20;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    width: fit-content;
+  }
+
+  .drawer-actions-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .drawer-action-btn {
+    flex: 1;
+    height: 38px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .btn-deposit { background: var(--green-gradient); }
+  .btn-withdraw { background: var(--blue-gradient); }
+
+  .drawer-menu-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 2px;
+  }
+
+  .drawer-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+  }
+
+  .drawer-menu-item.is-tapped {
+    background: rgba(44, 132, 250, 0.35) !important;
+    transform: scale(0.94) !important;
+    transition: transform 0.12s ease, background 0.12s ease !important;
+    transition-delay: 0s !important;
+  }
+
+  .drawer-menu-item.is-tapped .menu-icon-circle {
+    transform: scale(0.92);
+    box-shadow: 0 0 12px 3px rgba(44, 132, 250, 0.8) !important;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .menu-icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--blue-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #010101;
+    flex-shrink: 0;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .menu-icon-circle svg {
+    stroke: #010101;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* ───────────────────────── 5. Profile Scene («Мой профиль») ───────────────────────── */
+  .profile-page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 12px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cascade-profile {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition-delay: 0s;
+  }
+
+  #profileScene:not(.hidden) .cascade-profile {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #profileScene:not(.hidden) .profile-title-header.cascade-profile { transition-delay: 0.03s; }
+  #profileScene:not(.hidden) .profile-hero-card.cascade-profile { transition-delay: 0.06s; }
+  #profileScene:not(.hidden) .avatar-picker-section.cascade-profile { transition-delay: 0.09s; }
+  #profileScene:not(.hidden) .profile-form-mock > .profile-field-input:nth-child(1).cascade-profile { transition-delay: 0.12s; }
+  #profileScene:not(.hidden) .profile-form-mock > .profile-field-input:nth-child(2).cascade-profile { transition-delay: 0.15s; }
+  #profileScene:not(.hidden) .profile-form-mock > .profile-field-input:nth-child(3).cascade-profile { transition-delay: 0.18s; }
+
+  .profile-title-header {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 4px 2px;
+  }
+
+  .profile-hero-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-radius: 12px;
+    background: linear-gradient(to right, #1E7204, rgba(27, 27, 27, 0));
+    padding: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+
+  .profile-avatar-wrap {
+    position: relative;
+    width: 74px;
+    height: 74px;
+    flex-shrink: 0;
+  }
+
+  .profile-main-avatar {
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .profile-avatar-badge-btn {
+    position: absolute;
+    bottom: -2px;
+    right: 0px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-hero-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .profile-id-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #231f20;
+    border-radius: 8px;
+    padding: 3px 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    width: fit-content;
+  }
+
+  .profile-id-label {
+    color: #7A7A7A;
+  }
+
+  .profile-id-num {
+    margin-right: 4px;
+  }
+
+  .profile-copy-btn {
+    background: #1d1d1d;
+    border-radius: 6px;
+    border: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .profile-usd-val {
+    font-size: 19px;
+    font-weight: 600;
+    color: #ffffff;
+    padding: 2px 2px 0;
+  }
+
+  .profile-bonus-val {
+    font-size: 17px;
+    font-weight: 600;
+    color: #2c84fa;
+    padding: 0 2px;
+  }
+
+  /* Avatar Picker Section with soft glow */
+  .avatar-picker-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .avatar-scroll-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 6px 4px 10px;
+  }
+
+  .avatar-choice-item {
+    position: relative;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+  }
+
+  .avatar-choice-img {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid transparent;
+  }
+
+  .avatar-choice-item.selected {
+    transform: scale(1.08);
+    box-shadow: 0 0 10px 2px rgba(44, 132, 250, 0.55), 0 0 2px rgba(255,255,255,0.8);
+  }
+
+  .avatar-choice-item.selected .avatar-choice-img {
+    border-color: #2c84fa;
+  }
+
+  .avatar-choice-item.is-tapped {
+    transform: scale(1.15) !important;
+    box-shadow: 0 0 16px 4px rgba(44, 132, 250, 0.75) !important;
+  }
+
+  .profile-form-mock {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .profile-field-input {
+    width: 100%;
+    height: 38px;
+    border-radius: 8px;
+    background: #3d3d3d;
+    border: none;
+    color: #ffffff;
+    font-size: 13.5px;
+    padding: 0 12px;
+    outline: none;
+  }
+
+  /* ───────────────────────── 6. Wallets Scene («Мои кошельки») ───────────────────────── */
+  .wallets-page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .cascade-wallet {
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.22s cubic-bezier(0.2, 0.9, 0.3, 1), transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition-delay: 0s;
+  }
+
+  #walletsScene:not(.hidden) .cascade-wallet {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #walletsScene:not(.hidden) .wallet-select-trigger.cascade-wallet { transition-delay: 0.03s; }
+  #walletsScene:not(.hidden) .wallets-section-title.cascade-wallet { transition-delay: 0.06s; }
+  #walletsScene:not(.hidden) .wallet-card-item.cascade-wallet { transition-delay: 0.09s; }
+  #walletsScene:not(.hidden) .add-wallet-card.cascade-wallet { transition-delay: 0.12s; }
+
+  .wallet-select-trigger {
+    width: 100%;
+    height: 40px;
+    background: #27272a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    font-size: 14px;
+    color: #e4e4e7;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+
+  .wallets-section-title {
+    font-size: 16.5px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .wallets-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .wallet-card-item {
+    min-height: 110px;
+    background: #313131;
+    border-radius: 12px;
+    border: 2px solid #313131;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .wallet-card-item.active-wallet {
+    border-color: #0357c8;
+    box-shadow: 0 0 12px rgba(3, 87, 200, 0.35);
+  }
+
+  .wallet-card-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .wallet-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .wallet-balance-num {
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+  }
+
+  .wallet-balance-num.muted {
+    color: #7b7b7b;
+  }
+
+  .wallet-card-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+  }
+
+  .wallet-btn-dep {
+    width: 120px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #00d11d;
+    background: var(--green-gradient);
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .wallet-btn-wdr {
+    width: 120px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid #2c84fa;
+    background: var(--blue-gradient);
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .wallet-use-label {
+    font-size: 11.5px;
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  /* Currency Switch / Toggle */
+  .currency-switch-btn {
+    position: relative;
+    width: 66px;
+    height: 34px;
+    border-radius: 20px;
+    background: #1b1b1b;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    transition: background-color 0.22s ease;
+    display: flex;
+    align-items: center;
+  }
+
+  .currency-switch-btn[data-state="checked"] {
+    background: #0357c8;
+  }
+
+  .switch-knob {
+    display: block;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e6e6e6;
+    transform: translateX(0px);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+
+  .currency-switch-btn[data-state="checked"] .switch-knob {
+    transform: translateX(32px);
+  }
+
+  /* Add Wallet Big Plus Card */
+  .add-wallet-card {
+    min-height: 120px;
+    border-radius: 12px;
+    border: 2px dashed rgba(255,255,255,0.15);
+    background: rgba(41, 41, 41, 0.55);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+  }
+
+  .add-wallet-icon-wrap {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: #2c84fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 16px 4px #042e65, 0 0 14px rgba(44, 132, 250, 0.35);
+  }
+
+  .add-wallet-label {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #e4e4e7;
+  }
+
+  /* ───────────────────────── 7. Add Wallet Modal Popup ───────────────────────── */
+  .add-wallet-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 70;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.20s ease, visibility 0.20s ease;
+  }
+
+  .add-wallet-modal-backdrop.hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .add-wallet-modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    background: #1b1b1b;
+    border-radius: 28px;
+    padding: 24px 20px 20px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 24px rgba(44, 132, 250, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: scale(1);
+    transition: transform 0.20s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .add-wallet-modal-backdrop.hidden .add-wallet-modal-dialog {
+    transform: scale(0.94);
+  }
+
+  .modal-close-round {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: #0357c8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .add-wallet-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .add-wallet-modal-sub {
+    font-size: 14.5px;
+    color: #a1a1aa;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+
+  .add-wallet-select-wrap {
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .add-wallet-select {
+    width: 100%;
+    height: 44px;
+    border-radius: 8px;
+    background: #2c2c2c;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    font-size: 14.5px;
+    padding: 0 12px;
+    text-align: center;
+    outline: none;
+  }
+
+  .add-wallet-submit-btn {
+    width: 100%;
+    height: 42px;
+    border-radius: 8px;
+    border: 1px solid #2c84fa;
+    background: var(--blue-gradient);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(3, 87, 200, 0.4);
+  }
+
+  /* ───────────────────────── 8. Bottom Navigation Bar ───────────────────────── */
+  .bottom-nav {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 72px;
+    padding-top: 6px;
+    padding-bottom: 20px;
+    background: #1e1e1e;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: stretch;
+    z-index: 100;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.5);
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    pointer-events: none;
+  }
+  .bottom-nav.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 3px;
+    color: #898988;
+    font-size: 11px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: color 0.15s ease;
+    padding: 4px 0 0 0;
+  }
+  .bottom-nav-item.active { color: #2c84fa; }
+  .bottom-nav-item svg { flex-shrink: 0; }
+  .bottom-nav-item span { line-height: 1; }
+
+  /* ───────────────────────── 9. Sport Scene ───────────────────────── */
+  .sport-page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 84px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sport-match-card {
+    background: #222630;
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .sport-match-league {
+    font-size: 11px;
+    color: #2c84fa;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .sport-live-badge {
+    background: #e03030;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    animation: pulse-live 1.5s infinite;
+  }
+  @keyframes pulse-live {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+  }
+  .sport-match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .sport-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 36%;
+  }
+  .sport-team-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+  .sport-team-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .sport-match-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .sport-score-num {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+  .sport-match-time {
+    font-size: 11px;
+    color: #e03030;
+    font-weight: 600;
+  }
+  .sport-odds-row {
+    display: flex;
+    gap: 7px;
+  }
+  .sport-odd-btn {
+    flex: 1;
+    background: #2d3140;
+    border: 1.5px solid transparent;
+    border-radius: 8px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .sport-odd-btn.selected {
+    border-color: #2c84fa;
+    background: rgba(44,132,250,0.15);
+  }
+  .sport-odd-btn.is-tapped {
+    background: rgba(44,132,250,0.3);
+    transform: scale(0.97);
+  }
+  .sport-odd-label {
+    font-size: 11px;
+    color: #898988;
+    font-weight: 500;
+  }
+  .sport-odd-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .sport-odd-btn.selected .sport-odd-value { color: #2c84fa; }
+
+  /* Betslip */
+  .betslip-panel {
+    background: #222630;
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid rgba(44,132,250,0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  .betslip-panel.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .betslip-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .betslip-selection {
+    background: #1a1d26;
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-size: 12px;
+    color: #e4e4e4;
+    border-left: 3px solid #2c84fa;
+    line-height: 1.4;
+  }
+  .betslip-selection strong { color: #fff; font-size: 13px; }
+  .betslip-amount-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .betslip-amount-label { font-size: 12px; color: #898988; flex-shrink: 0; }
+  .betslip-amount-input {
+    flex: 1;
+    background: #3d3d3d;
+    border: 1.5px solid #095ecf;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 7px 10px;
+    outline: none;
+    text-align: right;
+  }
+  .betslip-potential {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #898988;
+  }
+  .betslip-potential strong { color: #4ade80; font-size: 14px; }
+  .betslip-submit-btn {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
+    border: none;
+    background: var(--blue-gradient);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(44,132,250,0.4);
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+  .betslip-submit-btn.is-tapped {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+
+  /* ───────────────────────── 10. Bet Toast / Win Notification (10xRate Site Style) ───────────────────────── */
+  .bet-toast {
+    position: absolute;
+    bottom: 82px;
+    left: 12px;
+    right: 12px;
+    background: #1e1e1e;
+    border: 1px solid rgba(44, 132, 250, 0.35);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 18px rgba(44, 132, 250, 0.15);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    pointer-events: none;
+  }
+  .bet-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .bet-toast-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(44, 132, 250, 0.15);
+    border: 1px solid rgba(44, 132, 250, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #2c84fa;
+  }
+  .bet-toast-text { flex: 1; min-width: 0; }
+  .bet-toast-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .bet-toast-sub {
+    font-size: 11.5px;
+    color: #898988;
+    margin-top: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bet-toast-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2c84fa;
+    background: rgba(44, 132, 250, 0.12);
+    border: 1px solid rgba(44, 132, 250, 0.25);
+    border-radius: 8px;
+    padding: 4px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Win / Payout Toast (10xRate Green Style) */
+  .win-toast {
+    position: absolute;
+    bottom: 82px;
+    left: 12px;
+    right: 12px;
+    background: #1e1e1e;
+    border: 1px solid rgba(0, 209, 29, 0.4);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 209, 29, 0.15);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 201;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1);
+    pointer-events: none;
+  }
+  .win-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .win-toast-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0, 209, 29, 0.15);
+    border: 1px solid rgba(0, 209, 29, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #00d11d;
+  }
+  .win-toast-text { flex: 1; min-width: 0; }
+  .win-toast-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.2;
+  }
+  .win-toast-sub {
+    font-size: 11.5px;
+    color: #898988;
+    margin-top: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .win-toast-amount {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #00d11d;
+    background: rgba(0, 209, 29, 0.12);
+    border: 1px solid rgba(0, 209, 29, 0.3);
+    padding: 4px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ───────────────────────── 11. Bet History Scene ───────────────────────── */
+  .bet-history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 70px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .bet-history-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .bet-history-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .bet-filter-row { display: flex; gap: 8px; }
+  .bet-filter-select {
+    flex: 1;
+    height: 38px;
+    background: #3d3d3d;
+    border: none;
+    border-radius: 8px;
+    color: #898988;
+    font-size: 13px;
+    padding: 0 10px;
+    outline: none;
+    appearance: none;
+  }
+  .bet-filter-label {
+    font-size: 12px;
+    color: #898988;
+    margin-bottom: 3px;
+    font-weight: 400;
+  }
+  .bet-filter-group { flex: 1; display: flex; flex-direction: column; }
+  .bet-history-card {
+    background: #222630;
+    border-radius: 14px;
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  .bet-history-card.visible { opacity: 1; transform: translateY(0); }
+  .bet-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .bet-card-match {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  .bet-card-league {
+    font-size: 11px;
+    color: #2c84fa;
+    margin-top: 2px;
+  }
+  .bet-card-status {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(34,197,94,0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34,197,94,0.3);
+    flex-shrink: 0;
+  }
+  .bet-card-status.lost { background: rgba(239,68,68,0.12); color: #f87171; border-color: rgba(239,68,68,0.25); }
+  .bet-card-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.07);
+  }
+  .bet-card-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+  }
+  .bet-card-row-label { color: #898988; }
+  .bet-card-row-val { color: #e4e4e4; font-weight: 600; }
+  .bet-card-payout-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(34,197,94,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .bet-card-payout-label { font-size: 12px; color: #86efac; }
+  .bet-card-payout-val { font-size: 18px; font-weight: 800; color: #4ade80; }
+  .bet-card-date { font-size: 11px; color: #555; margin-top: 2px; }
+
+  /* ---------- SCENE 7: Withdraw Screen Styles ---------- */
+  .withdraw-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 14px 80px 14px;
+  }
+  .withdraw-dropdown-mock {
+    width: 100%;
+    height: 40px;
+    background: #262626;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #e5e5e5;
+  }
+  .withdraw-title-row {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .withdraw-page-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .withdraw-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .withdraw-method-card {
+    background: #ffffff;
+    border: 2px solid #2c84fa;
+    border-radius: 16px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.2s ease;
+  }
+  .withdraw-method-card.is-tapped {
+    transform: scale(0.95);
+    box-shadow: 0 0 16px rgba(44, 132, 250, 0.6);
+  }
+  .withdraw-method-card img {
+    max-height: 52px;
+    max-width: 85%;
+    object-fit: contain;
+  }
+  .withdraw-form-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    margin-bottom: 8px;
+  }
+  .withdraw-back-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+  }
+  .withdraw-active-method-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+  .withdraw-active-method-badge img {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+  }
+  .withdraw-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .withdraw-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .withdraw-field-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: #ffffff;
+  }
+  .withdraw-field-input-wrap {
+    width: 100%;
+    height: 46px;
+    background: #3d3d3d;
+    border: 1px solid #095ecf;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .withdraw-field-input-wrap.is-active {
+    border-color: #2c84fa;
+    box-shadow: 0 0 12px rgba(44,132,250,0.4);
+  }
+  .withdraw-field-input {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #ffffff;
+    font-family: inherit;
+  }
+  .withdraw-field-input::placeholder {
+    color: #898988;
+    font-style: italic;
+    font-size: 14px;
+  }
+  .withdraw-field-input-wrap.select-wrap {
+    justify-content: space-between;
+    cursor: pointer;
+  }
+  .withdraw-cur-val {
+    font-size: 15px;
+    color: #ffffff;
+    font-weight: 500;
+  }
+  .withdraw-select-arr {
+    color: #898988;
+  }
+  .withdraw-submit-btn {
+    width: 100%;
+    height: 48px;
+    background: #095ecf;
+    border: none;
+    border-radius: 14px;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 18px rgba(9, 94, 207, 0.4);
+    transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .withdraw-submit-btn.is-tapped {
+    transform: scale(0.96);
+    background: #0747a1;
+  }
+
+  /* ---------- iOS Top Push Notification ---------- */
+  .ios-push-notification {
+    position: absolute;
+    top: 14px;
+    left: 12px;
+    right: 12px;
+    z-index: 2500;
+    background: rgba(28, 30, 36, 0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 11px 13px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8), 0 0 20px rgba(44, 132, 250, 0.25);
+    transform: translateY(-140%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.52s cubic-bezier(0.175, 0.885, 0.32, 1.15), opacity 0.3s ease;
+  }
+  .ios-push-notification.visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .ios-push-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #095ecf, #2c84fa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(9, 94, 207, 0.4);
+  }
+  .ios-push-icon-wrap svg {
+    stroke: #ffffff;
+  }
+  .ios-push-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .ios-push-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #8a939e;
+    margin-bottom: 2px;
+  }
+  .ios-push-app {
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .ios-push-time {
+    font-size: 10.5px;
+    color: #71717a;
+  }
+  .ios-push-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #4ade80;
+    line-height: 1.2;
+  }
+  .ios-push-desc {
+    font-size: 11px;
+    color: #b3bac5;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* SFX Sound Toggle Button */
+  .sfx-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    background: rgba(24, 28, 36, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 30px;
+    padding: 8px 16px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 15px rgba(44, 132, 250, 0.2);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .sfx-toggle-btn:hover {
+    background: rgba(35, 42, 54, 0.95);
+    border-color: #2c84fa;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.6), 0 0 20px rgba(44, 132, 250, 0.35);
+  }
+  .sfx-toggle-btn.muted {
+    opacity: 0.6;
+    color: #898988;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .sfx-wave-icon {
+    display: flex;
+    align-items: center;
+    gap: 2.5px;
+    height: 14px;
+  }
+  .sfx-wave-bar {
+    width: 2.5px;
+    background: #2c84fa;
+    border-radius: 2px;
+    animation: sfx-pulse 1.1s ease-in-out infinite;
+  }
+  .sfx-wave-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .sfx-wave-bar:nth-child(2) { height: 13px; animation-delay: 0.18s; }
+  .sfx-wave-bar:nth-child(3) { height: 9px; animation-delay: 0.36s; }
+  .sfx-toggle-btn.muted .sfx-wave-bar {
+    animation: none;
+    height: 4px;
+    background: #898988;
+  }
+  @keyframes sfx-pulse {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1.2); }
+  }
+
+</style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+
+  <!-- Sound Effects (SFX) Control Button -->
+  <button type="button" class="sfx-toggle-btn" id="sfxToggleBtn" title="Включить / Выключить звук эффектов">
+    <div class="sfx-wave-icon">
+      <div class="sfx-wave-bar"></div>
+      <div class="sfx-wave-bar"></div>
+      <div class="sfx-wave-bar"></div>
+    </div>
+    <span id="sfxLabel">SFX ON</span>
+  </button>
+
+  <!-- 3D Camera Viewport -->
+  <div class="camera-viewport">
+    <div class="camera-rig" id="cameraRig">
+
+      <!-- iPhone Frame -->
+      <div class="phone-frame" id="phoneFrame">
+
+        <!-- Glass Screen Glare -->
+        <div class="phone-screen-glare"></div>
+
+        <!-- AE Touch Cursor Indicator -->
+        <div class="ae-cursor" id="aeCursor">
+          <div class="ae-cursor-dot"></div>
+          <div class="ae-cursor-ring"></div>
+        </div>
+
+    <!-- Dynamic Island / Camera -->
+    <div class="dynamic-island"></div>
+
+    <!-- Status Bar (iOS) -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-icons">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="white">
+          <rect x="0" y="8" width="3" height="4" rx="0.5"/>
+          <rect x="4.5" y="5" width="3" height="7" rx="0.5"/>
+          <rect x="9" y="2.5" width="3" height="9.5" rx="0.5"/>
+          <rect x="13.5" y="0" width="3" height="12" rx="0.5"/>
+        </svg>
+        <svg width="15" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+          <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+        <svg width="22" height="11" viewBox="0 0 24 12" fill="none">
+          <rect x="1" y="1" width="19" height="10" rx="3" stroke="white" stroke-width="1.8"/>
+          <rect x="3" y="3" width="14" height="6" rx="1.5" fill="white"/>
+          <path d="M22 4.5v3" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Screen Area -->
+    <div class="phone-screen">
+
+      <!-- SCENE 1: Google Mobile Search -->
+      <div class="scene" id="googleScene">
+        <div class="google-mobile-wrap">
+          <div class="google-logo-mobile" id="googleLogoMobile">
+            <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+          </div>
+          <div class="search-bar-mobile" id="searchBarMobile">
+            <div class="search-icon-mobile">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <div class="search-content-wrap">
+              <span class="search-text-mobile" id="searchTextMobile"></span>
+              <span class="blink-cursor-mobile" id="blinkCursorMobile" style="display:none;"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 2: Mobile Website Header + Content -->
+      <div class="scene hidden" id="websiteScene">
+        <div class="mobile-site">
+          
+          <!-- Top Menu (Dynamic: Guest or Logged-in) -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn" aria-label="Меню">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" x2="21" y1="6" y2="6"></line>
+                  <line x1="3" x2="21" y1="12" y2="12"></line>
+                  <line x1="3" x2="21" y1="18" y2="18"></line>
+                </svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+
+            <!-- Guest buttons (Войти / Регистрация) -->
+            <div class="header-right" id="headerGuestBtns">
+              <button type="button" class="mobile-btn" id="headerLoginBtn">Войти</button>
+              <button type="button" class="mobile-btn mobile-btn-filled" id="headerRegBtn">Регистрация</button>
+            </div>
+
+            <!-- Logged-in user buttons (Wallet + Avatar) -->
+            <div class="header-right" id="headerUserBtns" style="display:none;">
+              <button type="button" class="header-wallet-btn" id="headerWalletBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="headerAvatarBtn">
+                <img src="" class="header-avatar-img" id="headerAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Blurred Background UI Content -->
+          <div class="mobile-body-content">
+            <div class="mobile-cat-row">
+              <div class="cat-pill active"><span>💎</span> Казино</div>
+              <div class="cat-pill"><span>⚽</span> Спорт</div>
+              <div class="cat-pill"><span>🎮</span> Слоты</div>
+              <div class="cat-pill"><span>♠️</span> Live</div>
+            </div>
+
+            <div class="mobile-hero-banner">
+              <div class="hero-text-col">
+                <span class="hero-badge">ТОП БОНУС</span>
+                <div class="hero-title">150% + 250 FS</div>
+                <div class="hero-sub">для новых игроков</div>
+              </div>
+              <img src="public/Image-10.webp" class="hero-athlete-img" alt="athlete" onerror="this.src='Image-10.webp'">
+            </div>
+
+            <div class="games-grid-preview">
+              <div class="game-card-mock">
+                <div class="game-icon-mock">🎰</div>
+                <span>Gates of 10x</span>
+              </div>
+              <div class="game-card-mock">
+                <div class="game-icon-mock">🍬</div>
+                <span>Sweet Bonanza</span>
+              </div>
+              <div class="game-card-mock">
+                <div class="game-icon-mock">⚡</div>
+                <span>10x Lightning</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Registration Modal Backdrop & Card -->
+        <div class="modal-backdrop hidden" id="modalBackdrop">
+          <div class="modal-mobile-card" id="modalMobileCard">
+            
+            <div class="modal-mobile-header cascade-item">
+              <img alt="logo 10xRate" src="public/logo_new.webp" width="130" height="34" style="object-fit:contain;" onerror="this.src='logo_new.webp'">
+              <button type="button" class="modal-close-mobile" id="modalCloseMobile">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6 6 18"></path>
+                  <path d="m6 6 12 12"></path>
+                </svg>
+              </button>
+            </div>
+
+            <form class="form-mobile" onsubmit="event.preventDefault()">
+              <div class="field-wrap-mobile cascade-item" id="mWrapEmail">
+                <input type="email" class="input-mobile" id="mInpEmail" placeholder="Введите вашу эл. почту..." autocomplete="off" readonly>
+              </div>
+
+              <div class="field-wrap-mobile cascade-item" id="mWrapName">
+                <input type="text" class="input-mobile" id="mInpName" placeholder="Введите ваше имя..." autocomplete="off" readonly>
+              </div>
+
+              <div class="field-wrap-mobile cascade-item" id="mWrapPass">
+                <input type="password" class="input-mobile" id="mInpPass" placeholder="Введите ваш пароль..." style="padding-right:38px;" autocomplete="off" readonly>
+                <button type="button" class="eye-btn-mobile" id="mEyeToggle" tabindex="-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="field-wrap-mobile cascade-item" id="mWrapDate">
+                <input type="text" class="input-mobile" id="mInpDate" placeholder="01/01/1980" autocomplete="off" readonly>
+              </div>
+
+              <div class="field-wrap-mobile cascade-item" id="mWrapPromo">
+                <input type="text" class="input-mobile" id="mInpPromo" placeholder="Введите ваш промокод..." autocomplete="off" readonly>
+              </div>
+
+              <div class="checkbox-mobile-row cascade-item" id="mChkRow">
+                <button type="button" role="checkbox" class="checkbox-mobile" id="mChkBox">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 6 9 17l-5-5"></path>
+                  </svg>
+                </button>
+                <label class="checkbox-mobile-label">Я подтверждаю, что мне есть 18+ и я не нарушаю законы</label>
+              </div>
+
+              <button type="submit" class="submit-btn-mobile cascade-item" id="mSubmitBtn">
+                <span>ОТПРАВИТЬ</span>
+              </button>
+
+              <div class="social-text-mobile cascade-item">Или зарегистрируйтесь через социальные сети</div>
+
+              <div class="social-row-mobile cascade-item">
+                <button type="button" class="social-btn-mobile">
+                  <svg width="20" height="20" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                  </svg>
+                </button>
+                <button type="button" class="social-btn-mobile">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="#24A1DE"/>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M7.702 12.012C10.255 10.899 11.958 10.165 12.81 9.81C15.244 8.798 15.75 8.622 16.08 8.616C16.152 8.615 16.314 8.633 16.419 8.718C16.507 8.79 16.532 8.887 16.543 8.956C16.555 9.024 16.57 9.18 16.558 9.305C16.42 10.757 15.822 14.28 15.518 15.904C15.389 16.591 15.136 16.822 14.891 16.844C14.359 16.893 13.955 16.493 13.44 16.155C12.634 15.627 12.179 15.298 11.397 14.783C10.493 14.188 11.079 13.861 11.594 13.325C11.729 13.185 14.072 11.054 14.117 10.861C14.123 10.837 14.128 10.747 14.075 10.7C14.021 10.653 13.942 10.669 13.885 10.682C13.804 10.701 12.515 11.553 10.019 13.238C9.653 13.489 9.322 13.612 9.026 13.606C8.7 13.599 8.08 13.424 7.62 13.274C7.054 13.09 6.606 12.993 6.645 12.68C6.666 12.518 6.889 12.352 7.315 12.184L7.702 12.012Z" fill="white"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SCENE 3: Profile Screen («Мой профиль») -->
+      <div class="scene hidden" id="profileScene">
+        <div class="mobile-site">
+          
+          <!-- Top Menu (Logged-in) -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" x2="21" y1="6" y2="6"></line>
+                  <line x1="3" x2="21" y1="12" y2="12"></line>
+                  <line x1="3" x2="21" y1="18" y2="18"></line>
+                </svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="profileHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="profileHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Profile Page Body with Cascade Items -->
+          <div class="profile-page-content">
+            <div class="profile-title-header cascade-profile">Мой профиль</div>
+
+            <!-- Profile Hero Card with Avatar (Exact from user) -->
+            <div class="profile-hero-card cascade-profile">
+              <div class="profile-avatar-wrap">
+                <img src="" class="profile-main-avatar" id="profileMainAvatar" alt="User Avatar">
+                <button class="profile-avatar-badge-btn" type="button">
+                  <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g filter="url(#filter0_d_154_378)">
+                      <circle cx="32" cy="28" r="28" fill="url(#paint0_linear_154_378)"></circle>
+                      <circle cx="32" cy="28" r="27" stroke="#1E1D1E" stroke-opacity="0.2" stroke-width="2"></circle>
+                    </g>
+                    <path d="M33.9217 42.9312C33.454 42.9767 32.9797 43 32.5 43C32.0203 43 31.546 42.9767 31.0781 42.9312L31.3591 40.0448C31.7337 40.0813 32.1142 40.1 32.5 40.1C32.8858 40.1 33.2663 40.0813 33.6409 40.0448L33.9217 42.9312Z" fill="white"></path>
+                    <path d="M28.2895 42.3792L29.1304 39.6038C28.3983 39.3819 27.6966 39.0895 27.0328 38.7341L25.6636 41.2904C26.4939 41.7351 27.3725 42.1014 28.2895 42.3792Z" fill="white"></path>
+                    <path d="M23.3013 39.7091L25.1422 37.4684C24.5544 36.9854 24.0147 36.4457 23.5317 35.8579L21.291 37.6988C21.8939 38.4327 22.5675 39.1062 23.3013 39.7091Z" fill="white"></path>
+                    <path d="M19.7094 35.3365L22.2658 33.9673C21.9103 33.3034 21.6178 32.6018 21.396 31.8697L18.6206 32.7105C18.8984 33.6277 19.2647 34.5062 19.7094 35.3365Z" fill="white"></path>
+                    <path d="M18.0688 29.9217L20.9552 29.6408C20.9187 29.2663 20.9 28.8858 20.9 28.5C20.9 28.1141 20.9187 27.7336 20.9552 27.3591L18.0688 27.0782C18.0233 27.546 18 28.0203 18 28.5C18 28.9796 18.0233 29.4539 18.0688 29.9217Z" fill="white"></path>
+                    <path d="M18.6206 24.2895L21.396 25.1304C21.6178 24.3983 21.9103 23.6966 22.2658 23.0328L19.7094 21.6636C19.2647 22.4939 18.8984 23.3725 18.6206 24.2895Z" fill="white"></path>
+                    <path d="M21.291 19.3011L23.5317 21.1421C24.0147 20.5543 24.5544 20.0146 25.1422 19.5316L23.3013 17.2909C22.5675 17.8938 21.8939 18.5673 21.291 19.3011Z" fill="white"></path>
+                    <path d="M25.6636 15.7096L27.0328 18.266C27.6966 17.9104 28.3983 17.618 29.1303 17.3962L28.2895 14.6208C27.3725 14.8986 26.4938 15.2648 25.6636 15.7096Z" fill="white"></path>
+                    <path d="M31.0781 14.0688C31.5459 14.0233 32.0202 14 32.4999 14C32.9795 14 33.4538 14.0233 33.9216 14.0688L33.6407 16.9552C33.2662 16.9187 32.8857 16.9 32.4999 16.9C32.114 16.9 31.7335 16.9187 31.359 16.9552L31.0781 14.0688Z" fill="white"></path>
+                    <path d="M36.7105 14.6208L35.8696 17.3962C36.6017 17.618 37.3034 17.9104 37.9672 18.266L39.3364 15.7096C38.5062 15.2648 37.6276 14.8986 36.7105 14.6208Z" fill="white"></path>
+                    <path d="M41.6988 17.2909L39.8579 19.5316C40.4457 20.0146 40.9854 20.5543 41.4684 21.1421L43.7091 19.3011C43.1062 18.5673 42.4327 17.8938 41.6988 17.2909Z" fill="white"></path>
+                    <path d="M45.2902 21.6636L42.7339 23.0328C43.0893 23.6966 43.3817 24.3983 43.6036 25.1303L46.379 24.2895C46.1012 23.3725 45.7349 22.4938 45.2902 21.6636Z" fill="white"></path>
+                    <path d="M46.9313 27.0782L44.0449 27.3591C44.0815 27.7336 44.1002 28.1141 44.1002 28.5C44.1002 28.8858 44.0815 29.2663 44.0449 29.6408L46.9313 29.9218C46.9768 29.4539 47.0002 28.9796 47.0002 28.5C47.0002 28.0203 46.9768 27.546 46.9313 27.0782Z" fill="white"></path>
+                    <path d="M46.379 32.7105L43.6036 31.8697C43.3817 32.6018 43.0893 33.3034 42.7339 33.9673L45.2902 35.3365C45.7349 34.5062 46.1012 33.6277 46.379 32.7105Z" fill="white"></path>
+                    <path d="M43.7091 37.6988L41.4684 35.8579C40.9854 36.4457 40.4457 36.9854 39.8579 37.4684L41.6988 39.7091C42.4327 39.1062 43.1062 38.4327 43.7091 37.6988Z" fill="white"></path>
+                    <path d="M39.3364 41.2904L37.9672 38.7341C37.3034 39.0895 36.6017 39.3819 35.8696 39.6038L36.7105 42.3792C37.6276 42.1014 38.5062 41.7351 39.3364 41.2904Z" fill="white"></path>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M28.1499 28.5C28.1499 26.0975 30.0974 24.15 32.4999 24.15C34.9024 24.15 36.8499 26.0975 36.8499 28.5C36.8499 30.9025 34.9024 32.85 32.4999 32.85C30.0974 32.85 28.1499 30.9025 28.1499 28.5ZM32.4999 29.95C31.6991 29.95 31.0499 29.3009 31.0499 28.5C31.0499 27.6992 31.6991 27.05 32.4999 27.05C33.3007 27.05 33.9499 27.6992 33.9499 28.5C33.9499 29.3009 33.3007 29.95 32.4999 29.95Z" fill="white"></path>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M32.4998 19.8C27.6949 19.8 23.7998 23.6951 23.7998 28.5C23.7998 33.3049 27.6949 37.2 32.4998 37.2C37.3047 37.2 41.1998 33.3049 41.1998 28.5C41.1998 23.6951 37.3047 19.8 32.4998 19.8ZM26.6998 28.5C26.6998 31.7032 29.2966 34.3 32.4998 34.3C35.703 34.3 38.2998 31.7032 38.2998 28.5C38.2998 25.2967 35.703 22.7 32.4998 22.7C29.2966 22.7 26.6998 25.2967 26.6998 28.5Z" fill="white"></path>
+                    <defs>
+                      <filter id="filter0_d_154_378" x="0" y="0" width="64" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                        <feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+                        <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix>
+                        <feOffset dy="4"></feOffset>
+                        <feGaussianBlur stdDeviation="2"></feGaussianBlur>
+                        <feComposite in2="hardAlpha" operator="out"></feComposite>
+                        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"></feColorMatrix>
+                        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_154_378"></feBlend>
+                        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_154_378" result="shape"></feBlend>
+                      </filter>
+                      <linearGradient id="paint0_linear_154_378" x1="32" y1="0" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#2C84FA"></stop>
+                        <stop offset="1" stop-color="#0357C8"></stop>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </button>
+              </div>
+              <div class="profile-hero-info">
+                <div class="profile-id-row">
+                  <span class="profile-id-label">ID:</span>
+                  <span class="profile-id-num">10235</span>
+                  <button title="Copy ID to clipboard" class="profile-copy-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy-plus"><line x1="15" x2="15" y1="12" y2="18"></line><line x1="12" x2="18" y1="15" y2="15"></line><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                  </button>
+                </div>
+                <div class="profile-usd-val">USD 0.00</div>
+                <div class="profile-bonus-val">Bonus: 0</div>
+              </div>
+            </div>
+
+            <!-- Avatar Picker Section (Cascade) -->
+            <div class="avatar-picker-section cascade-profile">
+              <div class="avatar-scroll-row" id="avatarScrollRow">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- User Data Form Mock (Cascade) -->
+            <div class="profile-form-mock">
+              <input type="text" class="profile-field-input cascade-profile" value="id: 10235" readonly>
+              <input type="text" class="profile-field-input cascade-profile" value="Александр" readonly>
+              <input type="text" class="profile-field-input cascade-profile" value="Player@10xrate.com" readonly>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SCENE 4: Wallets Screen («Мои кошельки») -->
+      <div class="scene hidden" id="walletsScene">
+        <div class="mobile-site">
+          
+          <!-- Top Menu (Logged-in) -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="3" x2="21" y1="6" y2="6"></line>
+                  <line x1="3" x2="21" y1="12" y2="12"></line>
+                  <line x1="3" x2="21" y1="18" y2="18"></line>
+                </svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="walletsHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="walletsHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Wallets Page Body -->
+          <div class="wallets-page-content">
+            
+            <!-- Select Trigger (Cascade 1) -->
+            <div class="wallet-select-trigger cascade-wallet">
+              <span>Мои кошельки</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <div class="wallets-section-title cascade-wallet">Мои кошельки</div>
+
+            <!-- Wallets Grid -->
+            <div class="wallets-grid">
+              
+              <!-- Turkish Lira (TRY) Card (Hidden initially, appears after add) -->
+              <div class="wallet-card-item" id="walletCardTRY" style="display:none;">
+                <div class="wallet-card-left">
+                  <div class="wallet-card-title">Turkish Lira (TRY)</div>
+                  <div class="wallet-balance-num muted">0</div>
+                </div>
+                <div class="wallet-card-right">
+                  <span class="wallet-use-label">Использовать валюту</span>
+                  <button type="button" role="switch" class="currency-switch-btn" id="currencySwitchTRY" data-state="unchecked">
+                    <span class="switch-knob"></span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- US Dollar (USD) Card (Cascade 4) -->
+              <div class="wallet-card-item active-wallet cascade-wallet" id="walletCardUSD">
+                <div class="wallet-card-left">
+                  <div class="wallet-card-title">US Dollar (USD)</div>
+                  <div class="wallet-balance-num">0</div>
+                </div>
+                <div class="wallet-card-right">
+                  <button type="button" class="wallet-btn-dep">Депозит</button>
+                  <button type="button" class="wallet-btn-wdr">Вывод</button>
+                </div>
+              </div>
+
+              <!-- Add Wallet Plus Button Card (Cascade 5) -->
+              <div class="add-wallet-card cascade-wallet" id="addWalletCardBtn">
+                <div class="add-wallet-icon-wrap">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#252830" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-plus"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                </div>
+                <span class="add-wallet-label">Добавить кошелек</span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SCENE 5: Sport Betting Scene -->
+      <div class="scene hidden" id="sportScene">
+        <div class="mobile-site">
+          <!-- Header (Logged-in) -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"></line><line x1="3" x2="21" y1="12" y2="12"></line><line x1="3" x2="21" y1="18" y2="18"></line></svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="sportHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="sportHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Sport Page Body -->
+          <div class="sport-page-content">
+
+            <!-- Live Match Card -->
+            <div class="sport-match-card" id="sportMatchCard">
+              <div class="sport-match-league">
+                <span class="sport-live-badge">LIVE</span>
+                UEFA Champions League · Финал
+              </div>
+              <div class="sport-match-teams">
+                <div class="sport-team">
+                  <div class="sport-team-logo">🔵</div>
+                  <div class="sport-team-name">Man City</div>
+                </div>
+                <div class="sport-match-score">
+                  <div class="sport-score-num">1 — 1</div>
+                  <div class="sport-match-time">67'</div>
+                </div>
+                <div class="sport-team">
+                  <div class="sport-team-logo">⚪</div>
+                  <div class="sport-team-name">Real Madrid</div>
+                </div>
+              </div>
+              <div class="sport-odds-row">
+                <div class="sport-odd-btn" id="oddWin1">
+                  <div class="sport-odd-label">П1</div>
+                  <div class="sport-odd-value">2.15</div>
+                </div>
+                <div class="sport-odd-btn" id="oddDraw">
+                  <div class="sport-odd-label">Х</div>
+                  <div class="sport-odd-value">3.40</div>
+                </div>
+                <div class="sport-odd-btn" id="oddWin2">
+                  <div class="sport-odd-label">П2</div>
+                  <div class="sport-odd-value">1.85</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Betslip Panel (hidden initially) -->
+            <div class="betslip-panel" id="betslipPanel">
+              <div class="betslip-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2c84fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/></svg>
+                Купон ставки
+              </div>
+              <div class="betslip-selection">
+                <strong>Победа П1 (Man City)</strong><br>
+                Man City — Real Madrid · UEFA CL
+              </div>
+              <div class="betslip-amount-row">
+                <div class="betslip-amount-label">Сумма:</div>
+                <input class="betslip-amount-input" id="betAmountInput" type="text" placeholder="0" readonly>
+              </div>
+              <div class="betslip-potential">
+                <span>Возможный выигрыш:</span>
+                <strong id="betPotentialWin">0.00 USD</strong>
+              </div>
+              <button type="button" class="betslip-submit-btn" id="betSubmitBtn">ПОСТАВИТЬ</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 6: Bet History Scene -->
+      <div class="scene hidden" id="betHistoryScene">
+        <div class="mobile-site">
+          <!-- Header (Logged-in) -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"></line><line x1="3" x2="21" y1="12" y2="12"></line><line x1="3" x2="21" y1="18" y2="18"></line></svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="betHistoryHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="betHistoryHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Bet History Body -->
+          <div class="bet-history-content">
+            <div class="bet-history-title">История ставок</div>
+
+            <!-- Filters -->
+            <div class="bet-history-filters">
+              <div>
+                <div class="bet-filter-label">Период:</div>
+                <select class="bet-filter-select"><option>Сегодня</option></select>
+              </div>
+              <div class="bet-filter-row">
+                <div class="bet-filter-group">
+                  <div class="bet-filter-label">Статус:</div>
+                  <select class="bet-filter-select"><option>Выигрыш</option></select>
+                </div>
+                <div class="bet-filter-group">
+                  <div class="bet-filter-label">Тип ставки:</div>
+                  <select class="bet-filter-select"><option>Одиночная</option></select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Winning Bet Card -->
+            <div class="bet-history-card" id="betHistoryCard">
+              <div class="bet-card-header">
+                <div>
+                  <div class="bet-card-match">Man City — Real Madrid</div>
+                  <div class="bet-card-league">UEFA Champions League · Финал</div>
+                </div>
+                <div class="bet-card-status">Выигрыш</div>
+              </div>
+              <div class="bet-card-divider"></div>
+              <div class="bet-card-row">
+                <span class="bet-card-row-label">Исход</span>
+                <span class="bet-card-row-val">Победа П1 (Man City)</span>
+              </div>
+              <div class="bet-card-row">
+                <span class="bet-card-row-label">Коэффициент</span>
+                <span class="bet-card-row-val">2.15</span>
+              </div>
+              <div class="bet-card-row">
+                <span class="bet-card-row-label">Сумма ставки</span>
+                <span class="bet-card-row-val">100.00 USD</span>
+              </div>
+              <div class="bet-card-payout-row">
+                <span class="bet-card-payout-label">💰 Выплата</span>
+                <span class="bet-card-payout-val">215.00 USD</span>
+              </div>
+              <div class="bet-card-date">Сегодня, 03:12</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 7: Withdraw Methods Screen (Cash / Crypto Selection) -->
+      <div class="scene hidden" id="withdrawMethodsScene">
+        <div class="mobile-site">
+          <!-- Header -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"></line><line x1="3" x2="21" y1="12" y2="12"></line><line x1="3" x2="21" y1="18" y2="18"></line></svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="withdrawMethodsHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="withdrawMethodsHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Withdraw body: method selection -->
+          <div class="withdraw-content">
+            <!-- Dropdown "Вывод" mockup -->
+            <div class="withdraw-dropdown-mock">
+              <span>Вывод</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <!-- Title -->
+            <div class="withdraw-title-row">
+              <div class="withdraw-page-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#095ecf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/></svg>
+                Вывод
+              </div>
+            </div>
+            <!-- Payment Method Grid -->
+            <div class="withdraw-grid">
+              <div class="withdraw-method-card" id="withdrawMethodCash">
+                <img src="public/Wallet--Streamline-Porto.webp" alt="Cash" onerror="this.src='Wallet--Streamline-Porto.webp'">
+              </div>
+              <div class="withdraw-method-card" id="withdrawMethodCrypto">
+                <img src="public/crypto.webp" alt="Crypto" onerror="this.src='crypto.webp'">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCENE 8: Withdraw Form Screen (Crypto details input) -->
+      <div class="scene hidden" id="withdrawFormScene">
+        <div class="mobile-site">
+          <!-- Header -->
+          <div class="mobile-header">
+            <div class="header-left">
+              <button type="button" class="toggle-menu-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="6" y2="6"></line><line x1="3" x2="21" y1="12" y2="12"></line><line x1="3" x2="21" y1="18" y2="18"></line></svg>
+              </button>
+              <div class="logo-link">
+                <img alt="logo 10xRate" src="public/logo_new.webp" onerror="this.src='logo_new.webp'">
+              </div>
+            </div>
+            <div class="header-right">
+              <button type="button" class="header-wallet-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+              </button>
+              <button type="button" class="header-avatar-btn" id="withdrawFormHeaderAvatarBtn">
+                <img src="" class="header-avatar-img" id="withdrawFormHeaderAvatarImg" alt="User Avatar">
+              </button>
+            </div>
+          </div>
+
+          <!-- Form body -->
+          <div class="withdraw-content">
+            <!-- Back navigation + active method badge -->
+            <div class="withdraw-form-top">
+              <div class="withdraw-back-nav" id="withdrawBackBtn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2c84fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                <span>Метод вывода</span>
+              </div>
+              <div class="withdraw-active-method-badge">
+                <img src="public/crypto.webp" alt="Crypto" onerror="this.src='crypto.webp'" style="height:22px;">
+                <span>Crypto</span>
+              </div>
+            </div>
+
+            <!-- Dropdown "Вывод" mockup -->
+            <div class="withdraw-dropdown-mock">
+              <span>Вывод</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+
+            <!-- Form fields -->
+            <div class="withdraw-form-body">
+              <!-- Amount -->
+              <div class="withdraw-field-group">
+                <div class="withdraw-field-label">Сумма вывода:</div>
+                <div class="withdraw-field-input-wrap" id="withdrawAmountWrap">
+                  <input class="withdraw-field-input" id="withdrawAmountInput" type="text" placeholder="Сумма" readonly>
+                </div>
+              </div>
+              <!-- Currency select -->
+              <div class="withdraw-field-group">
+                <div class="withdraw-field-input-wrap select-wrap" id="withdrawCurWrap">
+                  <span class="withdraw-cur-val" id="withdrawCurVal">USDT (TRC20)</span>
+                  <span class="withdraw-select-arr">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                  </span>
+                </div>
+              </div>
+              <!-- Wallet address -->
+              <div class="withdraw-field-group">
+                <div class="withdraw-field-label">Кошелек:</div>
+                <div class="withdraw-field-input-wrap" id="withdrawWalletWrap">
+                  <input class="withdraw-field-input" id="withdrawWalletInput" type="text" placeholder="Адрес кошелька" readonly>
+                </div>
+              </div>
+              <!-- Submit -->
+              <button type="button" class="withdraw-submit-btn" id="withdrawSubmitBtn">Вывод</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL: iOS Push Notification (slides from top of phone frame) -->
+      <div class="ios-push-notification" id="iosPushNotification">
+        <div class="ios-push-icon-wrap">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="ios-push-body">
+          <div class="ios-push-header">
+            <span class="ios-push-app">10xRate</span>
+            <span class="ios-push-time">сейчас</span>
+          </div>
+          <div class="ios-push-title">✅ Вывод выполнен: +215.00 USD</div>
+          <div class="ios-push-desc">Зачислено на Binance · USDT (TRC20)</div>
+        </div>
+      </div>
+
+      <!-- GLOBAL: Bottom Navigation Bar -->
+      <div class="bottom-nav" id="bottomNav">
+        <div class="bottom-nav-item" id="bnHome">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+          <span>Главная</span>
+        </div>
+        <div class="bottom-nav-item" id="bnSlots">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17a5 5 0 0 0 10 0c0-2.76-2.5-5-5-3-2.5-2-5 .24-5 3Z"></path><path d="M12 17a5 5 0 0 0 10 0c0-2.76-2.5-5-5-3-2.5-2-5 .24-5 3Z"></path><path d="M7 14c3.22-2.91 4.29-8.75 5-12 1.66 2.38 4.94 9 5 12"></path><path d="M22 9c-4.29 0-7.14-2.33-10-7 5.71 0 10 4.67 10 7Z"></path></svg>
+          <span>Слоты</span>
+        </div>
+        <div class="bottom-nav-item" id="bnCasino">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"></path><path d="M11 3 8 9l4 13 4-13-3-6"></path><path d="M2 9h20"></path></svg>
+          <span>Казино</span>
+        </div>
+        <div class="bottom-nav-item" id="bnBonuses">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path></svg>
+          <span>Бонусы</span>
+        </div>
+        <div class="bottom-nav-item" id="bnSport">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+          <span>Спорт</span>
+        </div>
+      </div>
+
+      <!-- GLOBAL: Bet Toast Notification (10xRate Site Style) -->
+      <div class="bet-toast" id="betToast">
+        <div class="bet-toast-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <div class="bet-toast-text">
+          <div class="bet-toast-title">Ставка принята</div>
+          <div class="bet-toast-sub">Man City — Real Madrid · Коэф. 2.15</div>
+        </div>
+        <div class="bet-toast-badge">100 USD</div>
+      </div>
+
+      <!-- GLOBAL: Win / Payout Toast Notification (10xRate Site Style) -->
+      <div class="win-toast" id="winToast">
+        <div class="win-toast-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+        </div>
+        <div class="win-toast-text">
+          <div class="win-toast-title">Выплата по ставке</div>
+          <div class="win-toast-sub">Победа Man City · начислено</div>
+        </div>
+        <div class="win-toast-amount">+215.00 USD</div>
+      </div>
+
+      <!-- UNIVERSAL Right Drawer Sidebar Menu (Placed at Phone Screen level) -->
+      <div class="drawer-backdrop hidden" id="drawerBackdrop">
+        <div class="right-drawer" id="rightDrawer">
+          
+          <!-- Header (Cascade 1) -->
+          <div class="drawer-header cascade-drawer">
+            <div class="currency-select-pill">
+              <span id="drawerCurLabel">USD</span>
+              <span style="font-weight:700;">0.00</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <button type="button" class="drawer-close-btn" id="drawerCloseBtn">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            </button>
+          </div>
+
+
+          <div class="drawer-content">
+            <!-- User card (Cascade 2) -->
+            <div class="drawer-user-card cascade-drawer">
+              <img src="" class="drawer-avatar-img" id="drawerAvatarImg" alt="User Avatar">
+              <div class="drawer-user-info">
+                <div class="drawer-id-badge">
+                  <span style="color:#7a7a7a;">ID:</span>
+                  <span>10235</span>
+                  <button title="Copy ID to clipboard" class="profile-copy-btn" style="margin-left:auto;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7A7A7A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="15" x2="15" y1="12" y2="18"></line><line x1="12" x2="18" y1="15" y2="15"></line><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>
+                  </button>
+                </div>
+                <div style="font-size:14px; color:#2c84fa; font-weight:700; margin-top:2px;">Bonus: 0</div>
+                <div style="font-size:16px; font-weight:700; color:#fff;" id="drawerUserBalance">USD 0.00</div>
+              </div>
+            </div>
+
+            <!-- Deposit & Withdraw (Cascade 3) -->
+            <div class="drawer-actions-row cascade-drawer">
+              <button type="button" class="drawer-action-btn btn-deposit">Депозит</button>
+              <button type="button" class="drawer-action-btn btn-withdraw" id="drawerWithdrawBtn">Вывод</button>
+            </div>
+
+            <!-- Menu Items List (Cascade 4 - 11) -->
+            <ul class="drawer-menu-list">
+              <!-- 1. Мой профиль -->
+              <li class="drawer-menu-item cascade-drawer" id="menuItemProfile">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-cog"><circle cx="18" cy="15" r="3"></circle><circle cx="9" cy="7" r="4"></circle><path d="M10 15H6a4 4 0 0 0-4 4v2"></path><path d="m21.7 16.4-.9-.3"></path><path d="m15.2 13.9-.9-.3"></path><path d="m16.6 18.7.3-.9"></path><path d="m19.1 12.2.3-.9"></path><path d="m19.6 18.7-.4-1"></path><path d="m16.8 12.3-.4-1"></path><path d="m14.3 16.6 1-.4"></path><path d="m20.7 13.8 1-.4"></path></svg>
+                </span>
+                <span>Мой профиль</span>
+              </li>
+
+              <!-- 2. Бонусы -->
+              <li class="drawer-menu-item cascade-drawer" id="menuItemBonuses">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gift"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13"></path><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"></path></svg>
+                </span>
+                <span>Бонусы</span>
+              </li>
+
+              <!-- 3. Мои кошельки -->
+              <li class="drawer-menu-item cascade-drawer" id="menuItemWallets">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-wallet"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"></path><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"></path></svg>
+                </span>
+                <span>Мои кошельки</span>
+              </li>
+
+              <!-- 4. Транзакции -->
+              <li class="drawer-menu-item cascade-drawer">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-landmark"><line x1="3" x2="21" y1="22" y2="22"></line><line x1="6" x2="6" y1="18" y2="11"></line><line x1="10" x2="10" y1="18" y2="11"></line><line x1="14" x2="14" y1="18" y2="11"></line><line x1="18" x2="18" y1="18" y2="11"></line><polygon points="12 2 20 7 4 7"></polygon></svg>
+                </span>
+                <span>Транзакции</span>
+              </li>
+
+              <!-- 5. История ставок -->
+              <li class="drawer-menu-item cascade-drawer" id="menuItemBetHistory">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-history"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>
+                </span>
+                <span>История ставок</span>
+              </li>
+
+              <!-- 6. История казино -->
+              <li class="drawer-menu-item cascade-drawer">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gallery-vertical-end"><path d="M7 2h10"></path><path d="M5 6h14"></path><rect width="18" height="12" x="3" y="10" rx="2"></rect></svg>
+                </span>
+                <span>История казино</span>
+              </li>
+
+              <!-- 7. Пароль -->
+              <li class="drawer-menu-item cascade-drawer">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-key-round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"></path></svg>
+                </span>
+                <span>Пароль</span>
+              </li>
+
+              <!-- 8. Выйти -->
+              <li class="drawer-menu-item cascade-drawer">
+                <span class="menu-icon-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#010101" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" x2="9" y1="12" y2="12"></line></svg>
+                </span>
+                <span>Выйти</span>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Add Wallet Modal Dialog -->
+      <div class="add-wallet-modal-backdrop hidden" id="addWalletModalBackdrop">
+        <div class="add-wallet-modal-dialog" id="addWalletModalDialog">
+          <button type="button" class="modal-close-round" id="closeAddWalletModal">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+          </button>
+          <h2 class="add-wallet-modal-title">Добавить кошелек</h2>
+          <p class="add-wallet-modal-sub">Выберите валюту</p>
+          <div class="add-wallet-select-wrap">
+            <select class="add-wallet-select" id="currencySelectInp">
+              <option value="TRY" selected>Turkish Lira (TRY)</option>
+              <option value="BRL">Brazilian Real (BRL)</option>
+              <option value="UAH">Ukrainian Hryvnia (UAH)</option>
+              <option value="USDT">Tether (USDT)</option>
+            </select>
+          </div>
+          <button type="button" class="add-wallet-submit-btn" id="confirmAddWalletBtn">Добавить</button>
+        </div>
+      </div>
+
+    </div>
+
+      <!-- Home Bar (iOS) -->
+      <div class="home-indicator"></div>
+
+    </div><!-- /.phone-frame -->
+
+  </div><!-- /#cameraRig -->
+</div><!-- /.camera-viewport -->
+
+<script>
+  /* ─────────────────────────────────────────────────────────────
+     HIGH FIDELITY PROCEDURAL WEB AUDIO SFX SYNTHESIZER
+  ────────────────────────────────────────────────────────────── */
+  class UISoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+    }
+
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+
+    // 1. Soft Crisp UI Tap / Micro-Click
+    tap(freq = 680, duration = 0.038) {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(140, t + duration);
+        gain.gain.setValueAtTime(0.20, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + duration);
+      } catch (e) {}
+    }
+
+    // 2. Keyboard Keypress (Acoustic Mobile Key Click)
+    type() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+        
+        const randFreq = 1200 + Math.random() * 500;
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(randFreq, t);
+        osc.frequency.exponentialRampToValueAtTime(260, t + 0.032);
+
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1500, t);
+        filter.Q.setValueAtTime(2.2, t);
+
+        gain.gain.setValueAtTime(0.11, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.032);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.032);
+      } catch (e) {}
+    }
+
+    // 3. Whoosh disabled
+    whoosh() {
+      // Intentionally silent for smooth, clean camera & scene transitions
+    }
+
+    // 4. Toggle Switch Click
+    toggle(state = true) {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(state ? 440 : 660, t);
+        osc.frequency.exponentialRampToValueAtTime(state ? 750 : 360, t + 0.06);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.06);
+      } catch (e) {}
+    }
+
+    // 5. Place Bet Affirmative Beep
+    betConfirm() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        [587.33, 880.00].forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, t + i * 0.06);
+          gain.gain.setValueAtTime(0.16, t + i * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.06 + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t + i * 0.06);
+          osc.stop(t + i * 0.06 + 0.15);
+        });
+      } catch (e) {}
+    }
+
+    // 6. Win Payout Sparkling Coins Chime
+    win() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const notes = [1046.50, 1318.51, 1567.98, 2093.00];
+        notes.forEach((freq, idx) => {
+          const noteTime = t + idx * 0.075;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, noteTime);
+          gain.gain.setValueAtTime(0.16, noteTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(noteTime);
+          osc.stop(noteTime + 0.36);
+        });
+      } catch (e) {}
+    }
+
+    // 7. iOS Push Notification Ding (Apple Note Bell)
+    iosPush() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      try {
+        const t = this.ctx.currentTime;
+        const freqs = [1318.5, 2637.0, 3951.0];
+        const gains = [0.22, 0.08, 0.03];
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(gains[idx], t);
+          gain.gain.exponentialRampToValueAtTime(0.0005, t + 0.95);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.96);
+        });
+      } catch (e) {}
+    }
+  }
+
+  const sfx = new UISoundEngine();
+
+  // SFX Button & User Gesture Unlock
+  const sfxToggleBtn = document.getElementById('sfxToggleBtn');
+  const sfxLabel = document.getElementById('sfxLabel');
+  if (sfxToggleBtn) {
+    sfxToggleBtn.addEventListener('click', () => {
+      sfx.init();
+      sfx.enabled = !sfx.enabled;
+      if (sfx.enabled) {
+        sfxToggleBtn.classList.remove('muted');
+        sfxLabel.textContent = 'SFX ON';
+        sfx.tap(800, 0.05);
+      } else {
+        sfxToggleBtn.classList.add('muted');
+        sfxLabel.textContent = 'SFX OFF';
+      }
+    });
+  }
+
+  // Resume audio context on any user interaction
+  window.addEventListener('click', () => sfx.init(), { once: true });
+  window.addEventListener('keydown', () => sfx.init(), { once: true });
+  window.addEventListener('touchstart', () => sfx.init(), { once: true });
+
+  const phoneFrame = document.getElementById('phoneFrame');
+  const cameraRig = document.getElementById('cameraRig');
+  const aeCursor = document.getElementById('aeCursor');
+
+  const googleScene = document.getElementById('googleScene');
+  const websiteScene = document.getElementById('websiteScene');
+  const profileScene = document.getElementById('profileScene');
+  const walletsScene = document.getElementById('walletsScene');
+  const sportScene = document.getElementById('sportScene');
+  const betHistoryScene = document.getElementById('betHistoryScene');
+
+  const googleLogoMobile = document.getElementById('googleLogoMobile');
+  const searchBarMobile = document.getElementById('searchBarMobile');
+  const searchTextMobile = document.getElementById('searchTextMobile');
+  const blinkCursorMobile = document.getElementById('blinkCursorMobile');
+  
+  const headerGuestBtns = document.getElementById('headerGuestBtns');
+  const headerUserBtns = document.getElementById('headerUserBtns');
+  const headerRegBtn = document.getElementById('headerRegBtn');
+  const headerAvatarBtn = document.getElementById('headerAvatarBtn');
+  const profileHeaderAvatarBtn = document.getElementById('profileHeaderAvatarBtn');
+  const walletsHeaderAvatarBtn = document.getElementById('walletsHeaderAvatarBtn');
+  const sportHeaderAvatarBtn = document.getElementById('sportHeaderAvatarBtn');
+  const betHistoryHeaderAvatarBtn = document.getElementById('betHistoryHeaderAvatarBtn');
+
+  const headerAvatarImg = document.getElementById('headerAvatarImg');
+  const profileHeaderAvatarImg = document.getElementById('profileHeaderAvatarImg');
+  const walletsHeaderAvatarImg = document.getElementById('walletsHeaderAvatarImg');
+  const sportHeaderAvatarImg = document.getElementById('sportHeaderAvatarImg');
+  const betHistoryHeaderAvatarImg = document.getElementById('betHistoryHeaderAvatarImg');
+  const drawerAvatarImg = document.getElementById('drawerAvatarImg');
+  const profileMainAvatar = document.getElementById('profileMainAvatar');
+
+  const modalBackdrop = document.getElementById('modalBackdrop');
+  const mEyeToggle = document.getElementById('mEyeToggle');
+  const mInpPass = document.getElementById('mInpPass');
+  const mChkBox = document.getElementById('mChkBox');
+  const mSubmitBtn = document.getElementById('mSubmitBtn');
+
+  const drawerBackdrop = document.getElementById('drawerBackdrop');
+  const menuItemProfile = document.getElementById('menuItemProfile');
+  const menuItemWallets = document.getElementById('menuItemWallets');
+  const menuItemBetHistory = document.getElementById('menuItemBetHistory');
+  const avatarScrollRow = document.getElementById('avatarScrollRow');
+
+  const addWalletCardBtn = document.getElementById('addWalletCardBtn');
+  const addWalletModalBackdrop = document.getElementById('addWalletModalBackdrop');
+  const confirmAddWalletBtn = document.getElementById('confirmAddWalletBtn');
+  const walletCardTRY = document.getElementById('walletCardTRY');
+  const walletCardUSD = document.getElementById('walletCardUSD');
+  const currencySwitchTRY = document.getElementById('currencySwitchTRY');
+  const drawerCurLabel = document.getElementById('drawerCurLabel');
+  const drawerUserBalance = document.getElementById('drawerUserBalance');
+
+  // Bottom Navigation
+  const bottomNav = document.getElementById('bottomNav');
+  const bnSport = document.getElementById('bnSport');
+  const bnHome = document.getElementById('bnHome');
+
+  // Sport Betting & Betslip
+  const oddWin1 = document.getElementById('oddWin1');
+  const betslipPanel = document.getElementById('betslipPanel');
+  const betAmountInput = document.getElementById('betAmountInput');
+  const betPotentialWin = document.getElementById('betPotentialWin');
+  const betSubmitBtn = document.getElementById('betSubmitBtn');
+  const betToast = document.getElementById('betToast');
+  const winToast = document.getElementById('winToast');
+  const betHistoryCard = document.getElementById('betHistoryCard');
+
+  // Withdraw Scenes
+  const withdrawMethodsScene = document.getElementById('withdrawMethodsScene');
+  const withdrawFormScene = document.getElementById('withdrawFormScene');
+  const withdrawMethodsHeaderAvatarImg = document.getElementById('withdrawMethodsHeaderAvatarImg');
+  const withdrawFormHeaderAvatarImg = document.getElementById('withdrawFormHeaderAvatarImg');
+  const drawerWithdrawBtn = document.getElementById('drawerWithdrawBtn');
+  const withdrawMethodCrypto = document.getElementById('withdrawMethodCrypto');
+  const withdrawAmountWrap = document.getElementById('withdrawAmountWrap');
+  const withdrawAmountInput = document.getElementById('withdrawAmountInput');
+  const withdrawWalletWrap = document.getElementById('withdrawWalletWrap');
+  const withdrawWalletInput = document.getElementById('withdrawWalletInput');
+  const withdrawSubmitBtn = document.getElementById('withdrawSubmitBtn');
+  const iosPushNotification = document.getElementById('iosPushNotification');
+
+  // Avatars from /public
+  const avatarFiles = [
+    'public/ava1.webp',
+    'public/ava2.png',
+    'public/ava3.png',
+    'public/ava4.png',
+    'public/ava5.png',
+    'public/ava6.png',
+    'public/ava7.png'
+  ];
+
+  let currentAvatarIdx = 0;
+
+  function updateAllAvatars(idx) {
+    currentAvatarIdx = idx;
+    const uri = avatarFiles[idx];
+    if (headerAvatarImg) headerAvatarImg.src = uri;
+    if (profileHeaderAvatarImg) profileHeaderAvatarImg.src = uri;
+    if (walletsHeaderAvatarImg) walletsHeaderAvatarImg.src = uri;
+    if (sportHeaderAvatarImg) sportHeaderAvatarImg.src = uri;
+    if (betHistoryHeaderAvatarImg) betHistoryHeaderAvatarImg.src = uri;
+    if (withdrawMethodsHeaderAvatarImg) withdrawMethodsHeaderAvatarImg.src = uri;
+    if (withdrawFormHeaderAvatarImg) withdrawFormHeaderAvatarImg.src = uri;
+    if (drawerAvatarImg) drawerAvatarImg.src = uri;
+    if (profileMainAvatar) profileMainAvatar.src = uri;
+
+    document.querySelectorAll('.avatar-choice-item').forEach((el, i) => {
+      if (i === idx) el.classList.add('selected');
+      else el.classList.remove('selected');
+    });
+  }
+
+  // Populate avatar picker row
+  avatarScrollRow.innerHTML = '';
+  avatarFiles.forEach((uri, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = `avatar-choice-item ${idx === 0 ? 'selected' : ''}`;
+    wrap.id = `avatarChoice_${idx}`;
+    wrap.innerHTML = `<img src="${uri}" class="avatar-choice-img" alt="avatar ${idx+1}" onerror="this.src='${uri.replace('public/','')}'">`;
+    avatarScrollRow.appendChild(wrap);
+  });
+
+  const fields = {
+    email: { wrap: document.getElementById('mWrapEmail'), input: document.getElementById('mInpEmail'), text: 'Player@10xrate.com' },
+    name:  { wrap: document.getElementById('mWrapName'),  input: document.getElementById('mInpName'),  text: 'Александр' },
+    pass:  { wrap: document.getElementById('mWrapPass'),  input: document.getElementById('mInpPass'),  text: 'Player1test' },
+    date:  { wrap: document.getElementById('mWrapDate'),  input: document.getElementById('mInpDate'),  text: '01/01/1980' },
+    promo: { wrap: document.getElementById('mWrapPromo'), input: document.getElementById('mInpPromo'), text: '10XRATE' },
+  };
+
+  const delay = ms => new Promise(res => setTimeout(res, ms));
+
+  /* ─────────────────────────────────────────────────────────────
+     PRECISE COORDINATE RESOLUTION & SMOOTH KEYFRAME 3D CAMERA
+  ────────────────────────────────────────────────────────────── */
+  let currentCamera = { x: 0, y: 0, zoom: 1, rotX: 0, rotY: 0 };
+
+  // Calculate pixel-perfect coordinates of an element inside phoneFrame (390x820 space)
+  function getElementCenterInPhone(el) {
+    if (!el) return { x: 195, y: 410 };
+    const frameRect = phoneFrame.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+    const zoom = currentCamera.zoom || 1;
+
+    const phoneCenterX = frameRect.left + frameRect.width / 2;
+    const phoneCenterY = frameRect.top + frameRect.height / 2;
+    const elCenterX = rect.left + rect.width / 2;
+    const elCenterY = rect.top + rect.height / 2;
+
+    const x = 195 + (elCenterX - phoneCenterX) / zoom;
+    const y = 410 + (elCenterY - phoneCenterY) / zoom;
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  // Smooth Keyframed Camera Glide (Slow & Cinematic)
+  function moveCamera(targetX = 0, targetY = 0, zoom = 1, rotX = 0, rotY = 0, durationMs = 700) {
+    return new Promise(resolve => {
+      currentCamera = { x: targetX, y: targetY, zoom, rotX, rotY };
+      cameraRig.style.transition = `transform ${durationMs}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
+      cameraRig.style.transform = `translate3d(${-targetX}px, ${-targetY}px, 0) scale(${zoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+      setTimeout(resolve, durationMs);
+    });
+  }
+
+  // Gentle, elegant zoom into element without jarring sudden shifts
+  function focusElement(el, zoom = 1.15, durationMs = 650) {
+    if (!el) return moveCamera(0, 0, 1, 0, 0, durationMs);
+    const { x, y } = getElementCenterInPhone(el);
+    const relX = x - 195;
+    const relY = y - 410;
+
+    const targetX = relX * 0.38;
+    const targetY = relY * 0.38;
+    const rotY = relX > 30 ? -1.8 : (relX < -30 ? 1.8 : 0);
+    const rotX = relY > 50 ? 1.5 : (relY < -50 ? -1.5 : 0);
+
+    return moveCamera(targetX, targetY, zoom, rotX, rotY, durationMs);
+  }
+
+  function resetCamera(durationMs = 650) {
+    return moveCamera(0, 0, 1.0, 0, 0, durationMs);
+  }
+
+  /* ─────────────────────────────────────────────────────────────
+     AFTER EFFECTS TOUCH POINTER & PINPOINT TAPPING
+  ────────────────────────────────────────────────────────────── */
+  async function tapWithCursor(element, duration = 180, zoomFocus = true, zoomLevel = 1.15) {
+    if (!element) return;
+    const { x, y } = getElementCenterInPhone(element);
+
+    aeCursor.classList.add('visible');
+    aeCursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+
+    if (zoomFocus) {
+      focusElement(element, zoomLevel, 600);
+    }
+    await delay(260);
+
+    // SFX Touch Tap sound
+    sfx.tap();
+
+    // Press down
+    aeCursor.classList.add('pressing');
+    element.classList.add('is-tapped');
+
+    // Spawn ripple wave exactly at element center
+    const ripple = document.createElement('div');
+    ripple.className = 'ae-ripple';
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+    phoneFrame.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 480);
+
+    await delay(duration);
+    aeCursor.classList.remove('pressing');
+    element.classList.remove('is-tapped');
+  }
+
+  function hideCursor() {
+    aeCursor.classList.remove('visible', 'pressing');
+  }
+
+  // Smoothly transition between scenes
+  function showScene(hideEls, showEl) {
+    return new Promise(resolve => {
+      hideEls.forEach(el => el.classList.add('hidden'));
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          showEl.classList.remove('hidden');
+          resolve();
+        });
+      });
+    });
+  }
+
+  function typeText(targetEl, text, speed = 65) {
+    return new Promise(resolve => {
+      targetEl.textContent = '';
+      let i = 0;
+      const iv = setInterval(() => {
+        targetEl.textContent += text[i];
+        sfx.type();
+        i++;
+        if (i >= text.length) { clearInterval(iv); resolve(); }
+      }, speed);
+    });
+  }
+
+  function typeIntoField(field, speed = 55) {
+    return new Promise(resolve => {
+      field.wrap.classList.add('is-active');
+      focusElement(field.wrap, 1.18, 500);
+      field.input.value = '';
+      const text = field.text;
+      let i = 0;
+      const iv = setInterval(() => {
+        field.input.value += text[i];
+        sfx.type();
+        i++;
+        if (i >= text.length) {
+          clearInterval(iv);
+          setTimeout(() => {
+            field.wrap.classList.remove('is-active');
+            resolve();
+          }, 140);
+        }
+      }, speed);
+    });
+  }
+
+  function resetMobileState() {
+    hideCursor();
+    resetCamera(400);
+
+    googleScene.classList.remove('hidden');
+    websiteScene.classList.add('hidden');
+    profileScene.classList.add('hidden');
+    walletsScene.classList.add('hidden');
+    sportScene.classList.add('hidden');
+    betHistoryScene.classList.add('hidden');
+    withdrawMethodsScene.classList.add('hidden');
+    withdrawFormScene.classList.add('hidden');
+
+    modalBackdrop.classList.add('hidden');
+    drawerBackdrop.classList.add('hidden');
+    addWalletModalBackdrop.classList.add('hidden');
+
+    bottomNav.classList.remove('visible');
+    bnSport.classList.remove('active');
+    bnHome.classList.add('active');
+
+    betToast.classList.remove('visible');
+    winToast.classList.remove('visible');
+    betslipPanel.classList.remove('visible');
+    oddWin1.classList.remove('selected');
+    betAmountInput.value = '';
+    betPotentialWin.textContent = '0.00 USD';
+    betHistoryCard.classList.remove('visible');
+
+    // Withdraw scene reset
+    withdrawAmountInput.value = '';
+    withdrawWalletInput.value = '';
+    iosPushNotification.classList.remove('visible');
+
+    walletCardTRY.style.display = 'none';
+    walletCardTRY.classList.remove('active-wallet');
+    walletCardUSD.classList.add('active-wallet');
+    currencySwitchTRY.setAttribute('data-state', 'unchecked');
+
+    drawerCurLabel.textContent = 'USD';
+    drawerUserBalance.textContent = 'USD 0.00';
+
+    headerGuestBtns.style.display = 'flex';
+    headerUserBtns.style.display = 'none';
+
+    updateAllAvatars(0);
+
+    googleLogoMobile.classList.remove('visible', 'fade-out');
+    searchBarMobile.classList.remove('is-tapped');
+    searchTextMobile.textContent = '';
+    blinkCursorMobile.style.display = 'none';
+
+    Object.values(fields).forEach(f => {
+      f.input.value = '';
+      f.wrap.classList.remove('is-active');
+    });
+
+    mChkBox.classList.remove('checked');
+    mInpPass.type = 'password';
+    mSubmitBtn.classList.remove('is-tapped');
+  }
+
+  async function playMobileSequence() {
+    resetMobileState();
+    await delay(500);
+
+    // ── 1. Google Mobile Search (Gentle zoom into search bar) ──
+    googleLogoMobile.classList.add('visible');
+    await moveCamera(0, -45, 1.14, 1.5, 0, 700);
+    await delay(350);
+
+    await tapWithCursor(searchBarMobile, 160, true, 1.18);
+    blinkCursorMobile.style.display = 'inline-block';
+    await delay(150);
+
+    await typeText(searchTextMobile, '10xrate.com', 60);
+    await delay(400);
+    blinkCursorMobile.style.display = 'none';
+
+    // ── 2. Transition to Mobile Website (Camera pulls back) ──
+    googleLogoMobile.classList.add('fade-out');
+    await resetCamera(600);
+    await showScene([googleScene], websiteScene);
+    await delay(500);
+
+    // ── 3. Tap «Регистрация» in top menu ─────────────────────
+    await tapWithCursor(headerRegBtn, 160, true, 1.16);
+    await delay(180);
+
+    // ── 4. Open Registration Modal & Fill fields ─────────────
+    modalBackdrop.classList.remove('hidden');
+    await moveCamera(0, 15, 1.12, 1.2, 0, 600);
+    await delay(350);
+
+    await typeIntoField(fields.email, 45);
+    await delay(120);
+
+    await typeIntoField(fields.name, 45);
+    await delay(120);
+
+    await typeIntoField(fields.pass, 45);
+    await delay(120);
+
+    // Eye toggle preview
+    await tapWithCursor(mEyeToggle, 140, false);
+    sfx.toggle(true);
+    mInpPass.type = 'text';
+    await delay(350);
+    await tapWithCursor(mEyeToggle, 140, false);
+    sfx.toggle(false);
+    mInpPass.type = 'password';
+    await delay(120);
+
+    await typeIntoField(fields.date, 45);
+    await delay(120);
+
+    await typeIntoField(fields.promo, 45);
+    await delay(140);
+
+    await tapWithCursor(mChkBox, 150, true, 1.15);
+    sfx.toggle(true);
+    mChkBox.classList.add('checked');
+    await delay(250);
+
+    // Tap «ОТПРАВИТЬ»
+    await tapWithCursor(mSubmitBtn, 160, true, 1.15);
+    sfx.betConfirm();
+    await delay(250);
+
+    // ── 5. Successful Registration → Logged In Header ────────
+    modalBackdrop.classList.add('hidden');
+    headerGuestBtns.style.display = 'none';
+    headerUserBtns.style.display = 'flex';
+    await resetCamera(600);
+    await delay(500);
+
+    // ── 6. Tap on Header Avatar → Open Right Sidebar Menu ───
+    await tapWithCursor(headerAvatarBtn, 150, true, 1.18);
+    drawerBackdrop.classList.remove('hidden');
+    await moveCamera(45, 0, 1.12, 0, -2.2, 650);
+    await delay(600);
+
+    // ── 7. Tap on «Мой профиль» in Drawer ────────────────────
+    await tapWithCursor(menuItemProfile, 180, true, 1.15);
+    drawerBackdrop.classList.add('hidden');
+    await showScene([websiteScene], profileScene);
+    await resetCamera(600);
+    await delay(500);
+
+    // ── 8. Change Avatar in Profile Picker ───────────────────
+    const targetAvatarItem = document.getElementById('avatarChoice_3'); // ava4.png
+    if (targetAvatarItem) {
+      await tapWithCursor(targetAvatarItem, 160, true, 1.18);
+      updateAllAvatars(3);
+    }
+    await delay(600);
+
+    // ── 9. Reopen Right Drawer Menu from Profile Header ──────
+    await tapWithCursor(profileHeaderAvatarBtn, 150, true, 1.18);
+    drawerBackdrop.classList.remove('hidden');
+    await moveCamera(45, 0, 1.12, 0, -2.2, 650);
+    await delay(600);
+
+    // ── 10. Tap on «Мои кошельки» in Drawer ──────────────────
+    await tapWithCursor(menuItemWallets, 180, true, 1.15);
+    drawerBackdrop.classList.add('hidden');
+    await showScene([profileScene], walletsScene);
+    await resetCamera(600);
+    await delay(600);
+
+    // ── 11. Tap on «Добавить кошелек» Card ───────────────────
+    await tapWithCursor(addWalletCardBtn, 160, true, 1.16);
+    addWalletModalBackdrop.classList.remove('hidden');
+    await moveCamera(0, 0, 1.14, 0, 0, 600);
+    await delay(450);
+
+    // ── 12. Tap on «Добавить» in Modal ───────────────────────
+    await tapWithCursor(confirmAddWalletBtn, 160, true, 1.15);
+    addWalletModalBackdrop.classList.add('hidden');
+    walletCardTRY.style.display = 'flex';
+    await resetCamera(550);
+    await delay(450);
+
+    // ── 13. Toggle «Использовать валюту» switch ──────────────
+    await tapWithCursor(currencySwitchTRY, 180, true, 1.18);
+    sfx.toggle(true);
+    currencySwitchTRY.setAttribute('data-state', 'checked');
+    walletCardTRY.classList.add('active-wallet');
+    walletCardUSD.classList.remove('active-wallet');
+
+    drawerCurLabel.textContent = 'TRY';
+    drawerUserBalance.textContent = 'TRY 0.00';
+    await delay(600);
+
+    // ── 14. Show Bottom Navigation Menu & Tap «Спорт» ─────────
+    bottomNav.classList.add('visible');
+    await moveCamera(0, 95, 1.16, 2, 0, 650);
+    await delay(300);
+
+    await tapWithCursor(bnSport, 180, true, 1.18);
+    bnHome.classList.remove('active');
+    bnSport.classList.add('active');
+    await delay(150);
+
+    // Navigate to Sport Scene
+    await showScene([walletsScene], sportScene);
+    await resetCamera(600);
+    await delay(600);
+
+    // ── 15. Make a Bet on Sport ──────────────────────────────
+    // Gentle focus on match & odd П1 (2.15)
+    await tapWithCursor(oddWin1, 180, true, 1.18);
+    oddWin1.classList.add('selected');
+    await delay(200);
+
+    // Betslip reveals smoothly
+    betslipPanel.classList.add('visible');
+    await moveCamera(0, 45, 1.15, 1.5, 0, 600);
+    await delay(350);
+
+    // Tap on bet amount input
+    await tapWithCursor(betAmountInput, 150, true, 1.18);
+    await delay(120);
+
+    // Type 100 into input and animate live potential win
+    const amountChars = ['1', '0', '0'];
+    let curAmount = '';
+    for (const char of amountChars) {
+      curAmount += char;
+      sfx.type();
+      betAmountInput.value = curAmount;
+      const calcWin = (parseFloat(curAmount) * 2.15).toFixed(2);
+      betPotentialWin.textContent = `${calcWin} USD`;
+      await delay(90);
+    }
+    await delay(400);
+
+    // Click "ПОСТАВИТЬ"
+    await tapWithCursor(betSubmitBtn, 180, true, 1.16);
+    sfx.betConfirm();
+    await delay(180);
+
+    // Show "Ставка принята!" toast
+    hideCursor();
+    await moveCamera(0, 60, 1.08, 1.5, 0, 600);
+    betToast.classList.add('visible');
+    await delay(1400);
+    betToast.classList.remove('visible');
+    await delay(300);
+
+    // Show "Выигрыш начислен!" toast with sparkling coins win SFX
+    winToast.classList.add('visible');
+    sfx.win();
+    drawerUserBalance.textContent = 'USD 215.00';
+    await delay(1700);
+    winToast.classList.remove('visible');
+    await resetCamera(600);
+    await delay(400);
+
+    // ── 16. Open Drawer Menu from Sport Header ────────────────
+    await tapWithCursor(sportHeaderAvatarBtn, 150, true, 1.18);
+    drawerBackdrop.classList.remove('hidden');
+    await moveCamera(45, 0, 1.12, 0, -2.2, 650);
+    await delay(600);
+
+    // ── 17. Tap «История ставок» in Drawer Menu ───────────────
+    await tapWithCursor(menuItemBetHistory, 180, true, 1.15);
+    drawerBackdrop.classList.add('hidden');
+    await showScene([sportScene], betHistoryScene);
+    await resetCamera(600);
+    await delay(350);
+
+    // Show winning bet card with smooth subtle zoom
+    betHistoryCard.classList.add('visible');
+    hideCursor();
+    await moveCamera(0, -15, 1.08, 1.2, 0, 700);
+
+    // Hold state to view the winning bet in history
+    await delay(2400);
+
+    // ── 18. Open Drawer Menu from Bet History Header ─────────
+    await tapWithCursor(betHistoryHeaderAvatarBtn, 150, true, 1.18);
+    drawerBackdrop.classList.remove('hidden');
+    await moveCamera(45, 0, 1.12, 0, -2.2, 650);
+    await delay(600);
+
+    // ── 19. Tap «ВЫВОД» in Drawer Menu ───────────────────────
+    await tapWithCursor(drawerWithdrawBtn, 180, true, 1.18);
+    await delay(150);
+    drawerBackdrop.classList.add('hidden');
+    await showScene([betHistoryScene], withdrawMethodsScene);
+    await resetCamera(600);
+    await delay(600);
+
+    // ── 20. Tap on «Crypto» Payment Method Card ──────────────
+    await tapWithCursor(withdrawMethodCrypto, 180, true, 1.18);
+    await delay(180);
+    // Smoothly transition from Methods screen (Scene 7) to Crypto Form screen (Scene 8)
+    await showScene([withdrawMethodsScene], withdrawFormScene);
+    await resetCamera(550);
+    await delay(500);
+
+    // ── 21. Fill Crypto Withdrawal Form ──────────────────────
+    // 21.1 Enter amount: 215
+    await tapWithCursor(withdrawAmountInput, 150, true, 1.18);
+    withdrawAmountWrap.classList.add('is-active');
+    const wChars = ['2', '1', '5'];
+    let wVal = '';
+    for (const c of wChars) {
+      wVal += c;
+      sfx.type();
+      withdrawAmountInput.value = wVal;
+      await delay(90);
+    }
+    withdrawAmountWrap.classList.remove('is-active');
+    await delay(300);
+
+    // 21.2 Enter crypto wallet address
+    await tapWithCursor(withdrawWalletInput, 150, true, 1.18);
+    withdrawWalletWrap.classList.add('is-active');
+    const walletAddr = 'TQn9Y2khEsLJW56Pad7D6x9vLmZ';
+    withdrawWalletInput.value = '';
+    for (let i = 0; i < walletAddr.length; i++) {
+      withdrawWalletInput.value += walletAddr[i];
+      sfx.type();
+      await delay(30);
+    }
+    withdrawWalletWrap.classList.remove('is-active');
+    await delay(400);
+
+    // ── 22. Tap «Вывод» Submit Button ────────────────────────
+    await tapWithCursor(withdrawSubmitBtn, 180, true, 1.16);
+    sfx.betConfirm();
+    drawerUserBalance.textContent = 'USD 0.00';
+    await delay(200);
+
+    // ── 23. Top iPhone Push Notification (Trust Wallet / Binance)
+    hideCursor();
+    await moveCamera(0, -60, 1.12, 1.5, 0, 600);
+    sfx.iosPush();
+    iosPushNotification.classList.add('visible');
+    await delay(3500);
+    iosPushNotification.classList.remove('visible');
+    await resetCamera(600);
+    await delay(1500);
+  }
+
+  async function startMobileLoop() {
+    while (true) {
+      await playMobileSequence();
+    }
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(startMobileLoop);
+  });
+</script>
+
+</body>
+</html>
